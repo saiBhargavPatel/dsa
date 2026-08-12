@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: kong-gateway
+    env: docker
+    plan: free
+    dockerfilePath: kong/Dockerfile
+    autoDeploy: true
+    port: 8000
+    env:
+      - key: KONG_DATABASE
+        value: "off"
+      - key: KONG_DECLARATIVE_CONFIG
+        value: "/kong/declarative/kong.yml"
+
+  - type: web
+    name: auth-service
+    env: docker
+    plan: free
+    dockerfilePath: auth-service/Dockerfile
+    autoDeploy: true
+    internal: true
+    port: 4001
+
+  - type: web
+    name: course-service
+    env: docker
+    plan: free
+    dockerfilePath: course-service/Dockerfile
+    autoDeploy: true
+    internal: true
+    port: 4002
+
+  - type: web
+    name: quiz-service
+    env: docker
+    plan: free
+    dockerfilePath: quiz-service/Dockerfile
+    autoDeploy: true
+    internal: true
+    port: 4003
+
+  - type: web
+    name: progress-service
+    env: docker
+    plan: free
+    dockerfilePath: progress-service/Dockerfile
+    autoDeploy: true
+    internal: true
+    port: 4004

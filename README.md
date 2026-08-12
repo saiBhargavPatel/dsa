@@ -411,6 +411,31 @@ python run_tests.py
 
 ---
 
+## Deploying to Render with Kong
+
+This repository includes a `render.yaml` that declares the Kong gateway plus the Python microservices. The microservices are configured as internal services and Kong is the single public gateway.
+
+Steps to deploy:
+
+1. Push this repository to GitHub (or a Git provider Render can access):
+
+```bash
+git add .
+git commit -m "Add Render deployment config and Kong gateway"
+git push origin main
+```
+
+2. On Render.com, create a new service and connect this repository. Render will detect `render.yaml` and create the listed services automatically. Ensure the `kong-gateway` service is public (default) and the other services are internal.
+
+3. If Kong doesn't pick up the declarative config automatically, set the environment variable `KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml` on the `kong-gateway` service (the `render.yaml` already includes this).
+
+4. Visit the Kong public URL (the `kong-gateway` service) — that is the API entrypoint for the SPA and API routes (e.g. `/auth`, `/courses`, `/quizzes`, `/progress`).
+
+Notes:
+- Render provides internal DNS between services in the same team — the service names used in `kong/kong.yml` match the service names in `render.yaml`.
+- Monitor service logs on Render to confirm successful startup and that Kong is routing requests to the internal services.
+
+
 ## License
 
 MIT — This is a demo/educational project. Use freely.
