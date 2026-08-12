@@ -30,6 +30,9 @@ services:
 
       - key: KONG_ADMIN_ERROR_LOG
         value: /dev/stderr
+      
+      - key: KONG_PROXY_LISTEN
+        value: 0.0.0.0:10000
 
 
   # =========================================================
@@ -179,3 +182,5 @@ databases:
     region: singapore
     databaseName: dsalearning
     user: dsauser
+    password:
+      generateValue: true

@@ -106,7 +106,7 @@ services:
       - progress-service
 
     ports:
-    - "8080:8000"
+      - "8080:8000"
 
 volumes:
   pgdata:
