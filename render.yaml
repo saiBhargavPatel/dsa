@@ -7,7 +7,7 @@ services:
   - type: web
     name: kong-gateway
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     dockerfilePath: ./kong/Dockerfile
     autoDeployTrigger: commit
@@ -155,6 +155,7 @@ services:
   - type: web
     name: dsa-frontend
     runtime: static
+    plan: free
     region: singapore
     staticPublishPath: ./frontend
     autoDeployTrigger: commit
