@@ -87,21 +87,25 @@ services:
       - "4004:4004"
 
   # ---- Edge / UI ----
-  gateway:
-    build: ./gateway
-    environment:
-      PORT: 8080
-      AUTH_SERVICE_URL: http://auth-service:4001
-      COURSE_SERVICE_URL: http://course-service:4002
-      QUIZ_SERVICE_URL: http://quiz-service:4003
-      PROGRESS_SERVICE_URL: http://progress-service:4004
-    depends_on:
-      - auth-service
-      - course-service
-      - quiz-service
-      - progress-service
-    ports:
-      - "8080:8080"
+  kong:
+  build: ./kong
+
+  environment:
+    KONG_DATABASE: "off"
+    KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
+    KONG_PROXY_ACCESS_LOG: /dev/stdout
+    KONG_PROXY_ERROR_LOG: /dev/stderr
+    KONG_ADMIN_ACCESS_LOG: /dev/stdout
+    KONG_ADMIN_ERROR_LOG: /dev/stderr
+
+  depends_on:
+    - auth-service
+    - course-service
+    - quiz-service
+    - progress-service
+
+  ports:
+    - "8080:8000"
 
 volumes:
   pgdata:

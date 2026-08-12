@@ -1,0 +1,44 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+
+  - name: auth-service
+    url: http://auth-service:4001
+
+    routes:
+      - name: auth-route
+        paths:
+          - /auth
+
+  - name: course-service
+    url: http://course-service:4002
+
+    routes:
+      - name: course-route
+        paths:
+          - /courses
+
+  - name: quiz-service
+    url: http://quiz-service:4003
+
+    routes:
+      - name: quiz-route
+        paths:
+          - /quizzes
+
+  - name: progress-service
+    url: http://progress-service:4004
+
+    routes:
+      - name: progress-route
+        paths:
+          - /progress
+
+  - name: internal-auth-service
+    url: http://auth-service:4001
+
+    routes:
+      - name: internal-auth-route
+        paths:
+          - /internal

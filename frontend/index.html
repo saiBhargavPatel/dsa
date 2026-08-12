@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DSA Learning Platform</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <nav id="navbar">
+    <div class="nav-brand" onclick="navigate('home')">
+      <span class="logo">🧠</span>
+      <span class="brand-text">DSA<span class="accent">Hub</span></span>
+    </div>
+    <div class="nav-links" id="navLinks">
+      <a onclick="navigate('home')" data-route="home">Home</a>
+      <a onclick="navigate('catalog')" data-route="catalog">Courses</a>
+      <a onclick="navigate('dashboard')" data-route="dashboard">My Progress</a>
+      <a onclick="navigate('leaderboard')" data-route="leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-auth" id="navAuth">
+      <!-- filled by JS -->
+    </div>
+  </nav>
+
+  <main id="app">
+    <!-- views rendered here -->
+  </main>
+
+  <footer>
+    <p>DSA Learning Platform · Microservices demo · Built with FastAPI + Express + PostgreSQL + Redis</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
