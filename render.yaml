@@ -170,6 +170,7 @@ services:
     plan: starter
     region: singapore
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
 
 databases:
@@ -183,5 +184,4 @@ databases:
     region: singapore
     databaseName: dsalearning
     user: dsauser
-    password:
-      generateValue: true
+    ipAllowList: []
