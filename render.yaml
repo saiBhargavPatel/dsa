@@ -176,7 +176,6 @@ services:
     name: dsa-frontend
     runtime: static
     plan: free
-    region: singapore
     staticPublishPath: ./frontend
     buildCommand: bash build.sh
     autoDeployTrigger: commit
