@@ -13,63 +13,55 @@ services:
     autoDeployTrigger: commit
 
     envVars:
-      # --- Kong core (DB-less / declarative) ---
       - key: KONG_DATABASE
         value: "off"
 
-      # The entrypoint renders the real config (with *_HOSTPORT values)
-      # into /tmp and points Kong at it. This initial value just tells
-      # entrypoint.sh where the template lives.
       - key: KONG_DECLARATIVE_CONFIG
         value: /kong/declarative/kong.yml
 
-      # --- Listening ports ---
-      # Render routes public HTTPS traffic to the container's $PORT.
-      # Kong proxy listens on 8000 (not 10000, which is restricted on
-      # Render's private network).
       - key: PORT
         value: "8000"
+
       - key: KONG_PROXY_LISTEN
         value: 0.0.0.0:8000
 
-      # Disable the Admin API on the public gateway (DB-less mode
-      # doesn't need it; exposing it would be a security hole).
       - key: KONG_ADMIN_LISTEN
         value: "off"
 
-      # --- Logging ---
       - key: KONG_PROXY_ACCESS_LOG
         value: /dev/stdout
+
       - key: KONG_PROXY_ERROR_LOG
         value: /dev/stderr
 
-      # --- Upstream service host:port (Render private network) ---
-      # fromService: property: hostport returns "<name>-<suffix>:<port>",
-      # which is the only form that resolves on Render's private network.
-      # entrypoint.sh substitutes these into kong.yml and prepends http://
+      # Render private-network host:port of each web service
       - key: AUTH_SERVICE_HOSTPORT
         fromService:
           name: auth-service
-          type: pserv
+          type: web
           property: hostport
+
       - key: COURSE_SERVICE_HOSTPORT
         fromService:
           name: course-service
-          type: pserv
+          type: web
           property: hostport
+
       - key: QUIZ_SERVICE_HOSTPORT
         fromService:
           name: quiz-service
-          type: pserv
+          type: web
           property: hostport
+
       - key: PROGRESS_SERVICE_HOSTPORT
         fromService:
           name: progress-service
-          type: pserv
+          type: web
           property: hostport
 
+
   # =========================================================
-  # AUTH SERVICE - PRIVATE
+  # AUTH SERVICE
   # =========================================================
   - type: web
     name: auth-service
@@ -81,20 +73,26 @@ services:
     autoDeployTrigger: commit
 
     envVars:
+      - key: PORT
+        value: "4001"
+
       - key: DATABASE_URL
         fromDatabase:
           name: dsa-postgres
           property: connectionString
+
       - key: REDIS_URL
         fromService:
           name: dsa-redis
           type: keyvalue
           property: connectionString
+
       - key: JWT_SECRET
         generateValue: true
 
+
   # =========================================================
-  # COURSE SERVICE - PRIVATE
+  # COURSE SERVICE
   # =========================================================
   - type: web
     name: course-service
@@ -106,18 +104,23 @@ services:
     autoDeployTrigger: commit
 
     envVars:
+      - key: PORT
+        value: "4002"
+
       - key: DATABASE_URL
         fromDatabase:
           name: dsa-postgres
           property: connectionString
+
       - key: REDIS_URL
         fromService:
           name: dsa-redis
           type: keyvalue
           property: connectionString
 
+
   # =========================================================
-  # QUIZ SERVICE - PRIVATE
+  # QUIZ SERVICE
   # =========================================================
   - type: web
     name: quiz-service
@@ -129,66 +132,71 @@ services:
     autoDeployTrigger: commit
 
     envVars:
+      - key: PORT
+        value: "4003"
+
       - key: DATABASE_URL
         fromDatabase:
           name: dsa-postgres
           property: connectionString
+
       - key: REDIS_URL
         fromService:
           name: dsa-redis
           type: keyvalue
           property: connectionString
 
+
   # =========================================================
-  # PROGRESS SERVICE - PRIVATE
+  # PROGRESS SERVICE
   # =========================================================
   - type: web
     name: progress-service
     runtime: docker
     plan: Free
-    #region: singapore
+    region: singapore
     dockerfilePath: ./progress-service/Dockerfile
     dockerContext: ./progress-service
     autoDeployTrigger: commit
 
     envVars:
+      - key: PORT
+        value: "4004"
+
       - key: DATABASE_URL
         fromDatabase:
           name: dsa-postgres
           property: connectionString
+
       - key: REDIS_URL
         fromService:
           name: dsa-redis
           type: keyvalue
           property: connectionString
-      # hostport returns "host:port" (no scheme); the service's config.py
-      # prepends http:// at startup.
+
       - key: AUTH_SERVICE_URL
         fromService:
           name: auth-service
-          type: pserv
+          type: web
           property: hostport
 
+
   # =========================================================
-  # FRONTEND - STATIC SITE (SPA)
+  # FRONTEND - STATIC SITE
   # =========================================================
   - type: web
     name: dsa-frontend
     runtime: static
-    plan: Free
+    #region: singapore
     staticPublishPath: ./frontend
-    buildCommand: bash build.sh
     autoDeployTrigger: commit
 
     envVars:
-      # Public URL of the Kong gateway. build.sh injects this into
-      # config.js so the SPA calls the API through Kong (cross-origin;
-      # Kong has the CORS plugin enabled).
-      #
-      # Replace the value below with your actual kong-gateway URL after
-      # the first deploy (the URL is only known once the service exists).
+      # Temporary value.
+      # Update this after Kong gets its actual Render URL.
       - key: API_BASE_URL
         value: https://kong-gateway.onrender.com
+
 
   # =========================================================
   # REDIS / KEY VALUE
@@ -199,6 +207,7 @@ services:
     region: singapore
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
+
 
 databases:
 
