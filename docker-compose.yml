@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  # ---- Infrastructure ----
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dsauser
+      POSTGRES_PASSWORD: dsapass
+      POSTGRES_DB: dsalearning
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dsauser -d dsalearning"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---- Microservices ----
+  auth-service:
+    build: ./auth-service
+    environment:
+      PORT: 4001
+      JWT_SECRET: dev-secret-change-me-in-production
+      DATABASE_URL: postgresql://dsauser:dsapass@postgres:5432/dsalearning
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "4001:4001"
+
+  course-service:
+    build: ./course-service
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgresql://dsauser:dsapass@postgres:5432/dsalearning
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "4002:4002"
+
+  quiz-service:
+    build: ./quiz-service
+    environment:
+      PORT: 4003
+      DATABASE_URL: postgresql://dsauser:dsapass@postgres:5432/dsalearning
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "4003:4003"
+
+  progress-service:
+    build: ./progress-service
+    environment:
+      PORT: 4004
+      DATABASE_URL: postgresql://dsauser:dsapass@postgres:5432/dsalearning
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "4004:4004"
+
+  # ---- Edge / UI ----
+  gateway:
+    build: ./gateway
+    environment:
+      PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:4001
+      COURSE_SERVICE_URL: http://course-service:4002
+      QUIZ_SERVICE_URL: http://quiz-service:4003
+      PROGRESS_SERVICE_URL: http://progress-service:4004
+    depends_on:
+      - auth-service
+      - course-service
+      - quiz-service
+      - progress-service
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
