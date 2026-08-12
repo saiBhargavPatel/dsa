@@ -2,7 +2,7 @@
 
 A fully functional, production-architected learning platform for **Data Structures & Algorithms**, built as a microservices application. Students can register, browse 12 DSA topics with 28 in-depth lessons, take quizzes, track progress, and compete on a leaderboard.
 
-![Architecture](https://img.shields.io/badge/architecture-microservices-blue) ![Status](https://img.shields.io/badge/tests-31%2F31%20passing-brightgreen)
+![Architecture](https://img.shields.io/badge/architecture-microservices-blue) ![Gateway](https://img.shields.io/badge/gateway-Kong-0033A0) ![Tests](https://img.shields.io/badge/tests-31%2F31%20passing-brightgreen)
 
 ---
 
@@ -12,18 +12,20 @@ A fully functional, production-architected learning platform for **Data Structur
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Quick Start (Docker)](#quick-start-docker)
+- [Deploying to Render](#deploying-to-render)
 - [Running Locally (Without Docker)](#running-locally-without-docker)
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
 - [DSA Content](#dsa-content)
 - [Testing](#testing)
-- [Screenshots / Features](#features)
+- [Features](#features)
+- [Environment Variables](#environment-variables)
 
 ---
 
 ## Overview
 
-DSAHub is designed to demonstrate a real microservices architecture while providing genuine educational value. Each service is independently deployable, has its own database tables, and communicates through the API gateway.
+DSAHub is designed to demonstrate a real microservices architecture while providing genuine educational value. Each service is independently deployable, has its own database tables, and communicates through the **Kong API gateway**.
 
 **What students can do:**
 - 🔐 Register / login with JWT authentication
@@ -38,50 +40,58 @@ DSAHub is designed to demonstrate a real microservices architecture while provid
 ## Architecture
 
 ```
-                    ┌──────────────────────────────────┐
-                    │         Web UI (SPA)              │
-                    │   HTML/CSS/JS (served by gateway) │
-                    └──────────────┬───────────────────┘
-                                   │ HTTP
-                    ┌──────────────▼───────────────────┐
-                    │       API Gateway (:8080)         │
-                    │   Node.js + Express + Proxy       │
-                    │   Routes /auth /courses /quizzes  │
-                    │   /progress + serves static UI    │
-                    └──┬──────┬──────┬──────┬───────────┘
-                       │      │      │      │
-              ┌────────▼┐ ┌───▼───┐ ┌▼─────┐ ┌▼──────────┐
-              │  Auth   │ │Course │ │ Quiz │ │ Progress  │
-              │ Service │ │Service│ │Service│ │  Service  │
-              │  :4001  │ │ :4002 │ │ :4003│ │  :4004    │
-              │ FastAPI │ │FastAPI│ │FastAPI│ │  FastAPI  │
-              └────┬────┘ └───┬───┘ └──┬───┘ └────┬──────┘
-                   │          │        │          │
-              ┌────┴──────────┴────────┴──────────┴────┐
-              │     PostgreSQL (:5432)                  │
-              │     Shared DB, per-service tables       │
-              └─────────────────────────────────────────┘
-              ┌────┴──────────┴────────┴──────────┴────┐
-              │     Redis (:6379)                       │
-              │     Caching + token blacklist           │
-              └─────────────────────────────────────────┘
+                        ┌────────────────────────────────────┐
+                        │        Web UI (SPA)                 │
+                        │  HTML/CSS/JS — Render static site    │
+                        │  (separate origin, calls Kong)       │
+                        └────────────────┬───────────────────┘
+                                         │ HTTPS (CORS)
+                        ┌────────────────▼───────────────────┐
+                        │     Kong API Gateway (public)       │
+                        │   DB-less / declarative config       │
+                        │   Routes /auth /courses /quizzes     │
+                        │   /progress  +  CORS plugin          │
+                        └──┬──────┬──────┬──────┬─────────────┘
+                           │      │      │      │
+                    ┌──────▼┐ ┌───▼───┐ ┌▼─────┐ ┌▼──────────┐
+                    │  Auth  │ │Course │ │ Quiz │ │ Progress  │
+                    │Service │ │Service│ │Service│ │  Service  │
+                    │FastAPI │ │FastAPI│ │FastAPI│ │  FastAPI  │
+                    └───┬────┘ └───┬───┘ └──┬───┘ └────┬──────┘
+                        │          │        │          │
+                    ┌───┴──────────┴────────┴──────────┴───┐
+                    │     PostgreSQL (Render Postgres)       │
+                    │     Shared DB, per-service tables       │
+                    └────────────────────────────────────────┘
+                    ┌───┴──────────┴────────┴──────────┴───┐
+                    │     Redis (Render Key Value)           │
+                    │     Caching + token blacklist          │
+                    └────────────────────────────────────────┘
 ```
+
+On **Render**, the four FastAPI services are **private services** (`pserv`) — they are
+not reachable from the public internet. Kong is the single **public web service** that
+receives all client traffic and proxies to the private services over Render's private
+network. The SPA is a **static site** on its own origin and calls the Kong public URL
+directly (Kong's CORS plugin permits the cross-origin request).
 
 ### Service Responsibilities
 
-| Service | Port | Responsibility |
+| Service | Type | Responsibility |
 |---------|------|---------------|
-| **Gateway** | 8080 | Reverse proxy, static UI hosting, request routing |
-| **Auth Service** | 4001 | User registration, login, JWT issuance, token verification |
-| **Course Service** | 4002 | DSA topics, lessons, content delivery, search |
-| **Quiz Service** | 4003 | Quiz questions, answer submission, auto-grading |
-| **Progress Service** | 4004 | Lesson completion tracking, quiz score recording, leaderboard |
-| **PostgreSQL** | 5432 | Shared database (each service owns its own tables) |
-| **Redis** | 6379 | Response caching, auth token blacklist, token verification cache |
+| **Frontend (SPA)** | Static site | Vanilla-JS single-page app; calls Kong public URL |
+| **Kong Gateway** | Public web service | Reverse proxy, CORS, request routing, rate-limiting ready |
+| **Auth Service** | Private service | User registration, login, JWT issuance, token verification |
+| **Course Service** | Private service | DSA topics, lessons, content delivery, search |
+| **Quiz Service** | Private service | Quiz questions, answer submission, auto-grading |
+| **Progress Service** | Private service | Lesson completion tracking, quiz scores, leaderboard |
+| **PostgreSQL** | Render Postgres | Shared database (each service owns its own tables) |
+| **Redis** | Render Key Value | Response caching, auth token blacklist, token verification cache |
 
 ### Inter-Service Communication
-- **Gateway → Services:** HTTP reverse proxy (http-proxy-middleware)
-- **Progress → Auth:** HTTP call to verify JWT tokens (cached in Redis for 120s)
+- **Browser → Kong:** HTTPS to the Kong public URL; CORS enabled via Kong plugin
+- **Kong → Services:** HTTP reverse proxy over Render's private network
+- **Progress → Auth:** HTTP call to `/internal/verify` to validate JWT tokens (cached in Redis for 120s)
 - All services share a PostgreSQL instance but access **only their own tables**
 
 ---
@@ -91,12 +101,13 @@ DSAHub is designed to demonstrate a real microservices architecture while provid
 | Layer | Technology |
 |-------|-----------|
 | **Backend Services** | Python 3.12, FastAPI, SQLAlchemy 2.0, Uvicorn |
-| **API Gateway** | Node.js 20, Express, http-proxy-middleware |
+| **API Gateway** | Kong 3.9 (DB-less / declarative config) |
 | **Database** | PostgreSQL 16 |
-| **Cache** | Redis 7 |
+| **Cache** | Redis 7 (Render Key Value) |
 | **Auth** | JWT (python-jose), bcrypt password hashing (passlib) |
 | **Frontend** | Vanilla JS SPA, marked.js for Markdown rendering |
 | **Containerization** | Docker, Docker Compose |
+| **Deployment** | Render (Blueprint via `render.yaml`) |
 
 ---
 
@@ -108,15 +119,17 @@ DSAHub is designed to demonstrate a real microservices architecture while provid
 ### Run
 
 ```bash
-cd /Users/saibhargav/Documents/MyProjects/dsa
+cd /path/to/dsa
 docker compose up --build
 ```
 
-Wait for all services to start (≈30 seconds). Then open:
+Wait for all services to start (≈30 seconds). The Kong gateway listens on **port 8080**
+and proxies to the four FastAPI services. Then open:
 
 > **http://localhost:8080**
 
-The first launch will automatically:
+Because the SPA is served as static files and the API base defaults to same-origin,
+everything works on a single origin in local Docker. The first launch will automatically:
 1. Create all database tables
 2. Seed 12 DSA topics with 28 lessons
 3. Seed 12 quizzes with 47+ questions
@@ -127,20 +140,53 @@ docker compose down          # stop containers
 docker compose down -v       # stop + delete database volume
 ```
 
+> **Note:** In local Docker, Kong routes API requests but the SPA is served from the
+> `frontend/` directory (open `frontend/index.html` directly or via a simple static server).
+> The `docker compose` setup focuses on the API. To use the full SPA locally with Kong,
+> serve `frontend/` with any static server and set `window.__API_BASE__` to
+> `http://localhost:8080` in `frontend/config.js`.
+
+---
+
+## Deploying to Render
+
+This repository includes a `render.yaml` Blueprint that declares **Kong** as the public
+gateway plus the four FastAPI **private services**, a **static site** for the SPA,
+a **Postgres** database, and a **Key Value (Redis)** instance. See **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
+for the complete step-by-step walkthrough. Summary:
+
+1. **Push to GitHub** — commit and push the repo to a GitHub repository.
+2. **Create a Render Blueprint** — in the Render Dashboard, create a new service from
+   this repo; Render detects `render.yaml` and provisions all resources.
+3. **Update `API_BASE_URL`** — after the first deploy, copy the `kong-gateway` public
+   URL and set it as the `API_BASE_URL` env var on the `dsa-frontend` static site
+   (replace the placeholder in `render.yaml` or set it in the Dashboard). Redeploy the
+   frontend.
+4. **Verify** — open the frontend URL; register a user, browse courses, take a quiz.
+
+Key design decisions baked into the config:
+- The microservices are **private** (no public URL) — only Kong is public.
+- Kong's upstream hostnames are injected at runtime from Render's `fromService: hostport`
+  (Render private hostnames carry a random suffix, so they can't be hardcoded).
+- Each service honors the `PORT` env var so it works on Render without code changes.
+- JWT secret is auto-generated; Postgres and Redis connection strings are wired via
+  `fromDatabase` / `fromService`.
+
+> ⚠️ **Important:** After the very first deploy you **must** update `API_BASE_URL` on the
+> frontend static site to point at your real Kong URL — see the deployment guide.
+
 ---
 
 ## Running Locally (Without Docker)
 
 ### Prerequisites
 - Python 3.12+
-- Node.js 20+
 - PostgreSQL (or use the Docker postgres container)
 - Redis (or use the Docker redis container)
 
 ### 1. Start infrastructure
 
 ```bash
-cd /Users/saibhargav/Documents/MyProjects/dsa
 docker compose up postgres redis -d
 
 # Or install locally via Homebrew:
@@ -162,30 +208,46 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 export DATABASE_URL="postgresql://dsauser:dsapass@localhost:5432/dsalearning"
 export REDIS_URL="redis://localhost:6379"
+export JWT_SECRET="dev-secret-change-me-in-production"
 uvicorn main:app --port 4001 --reload
 ```
 
 Repeat for `course-service` (:4002), `quiz-service` (:4003), `progress-service` (:4004).
 
-> ⚠️ The course and quiz services auto-seed on first startup. You can also trigger re-seeding via `POST /courses/admin/seed` and `POST /quizzes/admin/seed`.
+> ⚠️ The course and quiz services auto-seed on first startup. You can also trigger re-seeding
+> via `POST /courses/admin/seed` and `POST /quizzes/admin/seed`.
 
-### 3. Start the gateway
+### 3. Start Kong (or use the old Node gateway)
 
+Using Kong locally:
 ```bash
-cd gateway
-npm install
-export AUTH_SERVICE_URL=http://localhost:4001
-export COURSE_SERVICE_URL=http://localhost:4002
-export QUIZ_SERVICE_URL=http://localhost:4003
-export PROGRESS_SERVICE_URL=http://localhost:4004
-npm start
+cd kong
+docker build -t dsa-kong .
+docker run -p 8080:8000 \
+  -e AUTH_SERVICE_HOSTPORT=host.docker.internal:4001 \
+  -e COURSE_SERVICE_HOSTPORT=host.docker.internal:4002 \
+  -e QUIZ_SERVICE_HOSTPORT=host.docker.internal:4003 \
+  -e PROGRESS_SERVICE_HOSTPORT=host.docker.internal:4004 \
+  dsa-kong
 ```
 
-Open > **http://localhost:8080**
+### 4. Serve the frontend
+
+```bash
+cd frontend
+# Set the API base to Kong's local port
+echo 'window.__API_BASE__ = "http://localhost:8080";' > config.js
+python3 -m http.server 3000
+```
+
+Open > **http://localhost:3000**
 
 ---
 
 ## API Documentation
+
+All public API routes are served through Kong. Replace `http://localhost:8080` with
+your Kong public URL in production.
 
 ### Auth Service
 
@@ -232,32 +294,32 @@ Open > **http://localhost:8080**
 
 ```bash
 # 1. Register
-TOKEN=$(curl -s -X POST http://localhost:8080/auth/register \
+TOKEN=$(curl -s -X POST https://<kong-url>/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Alice","email":"alice@ex.com","password":"secret123"}' | jq -r .access_token)
 
 # 2. Browse topics
-curl -s http://localhost:8080/courses/topics | jq
+curl -s https://<kong-url>/courses/topics | jq
 
 # 3. Read a lesson
-curl -s http://localhost:8080/courses/lessons/arrays-intro | jq -r .content_md
+curl -s https://<kong-url>/courses/lessons/arrays-intro | jq -r .content_md
 
 # 4. Take a quiz
-curl -s http://localhost:8080/quizzes/1 | jq '.questions[] | {id, prompt, options}'
+curl -s https://<kong-url>/quizzes/1 | jq '.questions[] | {id, prompt, options}'
 
 # 5. Submit answers
-curl -s -X POST http://localhost:8080/quizzes/1/submit \
+curl -s -X POST https://<kong-url>/quizzes/1/submit \
   -H "Content-Type: application/json" \
   -d '{"answers":[{"question_id":1,"selected_index":1},{"question_id":2,"selected_index":2}]}' | jq
 
 # 6. Mark lesson complete
-curl -s -X POST http://localhost:8080/progress/lessons \
+curl -s -X POST https://<kong-url>/progress/lessons \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"lesson_slug":"arrays-intro","completed":true}' | jq
 
 # 7. View leaderboard
-curl -s http://localhost:8080/progress/leaderboard | jq
+curl -s https://<kong-url>/progress/leaderboard | jq
 ```
 
 ---
@@ -265,54 +327,61 @@ curl -s http://localhost:8080/progress/leaderboard | jq
 ## Project Structure
 
 ```
-dsa/                              ← /Users/saibhargav/Documents/MyProjects/dsa
-├── docker-compose.yml           # Orchestrates all services
-├── run_tests.py                 # End-to-end smoke tests (31 tests)
+dsa/
+├── render.yaml                 # Render Blueprint (Kong + services + DB + Redis)
+├── docker-compose.yml          # Local Docker orchestration
+├── DEPLOYMENT_GUIDE.md         # Step-by-step Render deployment guide
+├── run_tests.py                # End-to-end smoke tests (31 tests)
 ├── .dockerignore
 │
-├── gateway/                     # API Gateway (Node.js/Express)
-│   ├── server.js                # Proxy routes + static UI serving
-│   ├── package.json
-│   ├── Dockerfile
-│   └── public/                  # Frontend SPA
-│       ├── index.html
-│       ├── style.css
-│       └── app.js               # Routing, auth, all views
+├── kong/                       # Kong API Gateway (DB-less)
+│   ├── kong.yml                # Declarative config (template with __HOSTPORT__ placeholders)
+│   ├── entrypoint.sh           # Renders kong.yml at startup from *_HOSTPORT env vars
+│   └── Dockerfile              # Kong 3.9 image, renders config, proxy on :8000
 │
-├── auth-service/                # Authentication Service (FastAPI)
-│   ├── main.py                  # Register/login/logout/verify endpoints
-│   ├── config.py                # DB + settings
-│   ├── models.py                # User model
-│   ├── security.py              # JWT + bcrypt
-│   ├── seed.py                  # (no seed needed)
-│   ├── requirements.txt
-│   └── Dockerfile
+├── frontend/                   # Frontend SPA (Render static site)
+│   ├── index.html
+│   ├── app.js                  # Routing, auth, all views
+│   ├── config.js               # API base URL (set at deploy time via build.sh)
+│   ├── style.css
+│   └── build.sh                # Render build script — injects API_BASE_URL into config.js
 │
-├── course-service/              # Course/Lesson Service (FastAPI)
-│   ├── main.py                  # Topics, lessons, search endpoints
+├── auth-service/               # Authentication Service (FastAPI, private)
+│   ├── main.py
 │   ├── config.py
-│   ├── models.py                # Topic + Lesson models
-│   ├── seed.py                  # 📚 12 topics, 28 lessons (rich Markdown)
+│   ├── models.py
+│   ├── security.py
 │   ├── requirements.txt
 │   └── Dockerfile
 │
-├── quiz-service/                # Quiz Service (FastAPI)
-│   ├── main.py                  # Quiz listing, submission, grading
+├── course-service/             # Course/Lesson Service (FastAPI, private)
+│   ├── main.py
 │   ├── config.py
-│   ├── models.py                # Quiz + Question models
-│   ├── seed.py                  # 📝 12 quizzes, 47+ questions
+│   ├── models.py
+│   ├── seed.py                 # 12 topics, 28 lessons
 │   ├── requirements.txt
 │   └── Dockerfile
 │
-├── progress-service/            # Progress Tracking Service (FastAPI)
-│   ├── main.py                  # Lesson progress, quiz attempts, leaderboard
+├── quiz-service/               # Quiz Service (FastAPI, private)
+│   ├── main.py
 │   ├── config.py
-│   ├── models.py                # LessonProgress + QuizAttempt models
+│   ├── models.py
+│   ├── seed.py                 # 12 quizzes, 47+ questions
 │   ├── requirements.txt
 │   └── Dockerfile
+│
+├── progress-service/           # Progress Tracking Service (FastAPI, private)
+│   ├── main.py
+│   ├── config.py               # Normalizes AUTH_SERVICE_URL scheme
+│   ├── models.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── gateway-old/                # Deprecated Node.js gateway (kept for reference)
+│   └── ...
 │
 └── shared/
-    └── constants.py             # Shared constants
+    └── constants.py            # Shared constants (no secrets)
 ```
 
 ---
@@ -336,24 +405,20 @@ The platform includes **12 topics** with **28 lessons** and **12 quizzes** (47+ 
 | 🪙 Greedy Algorithms | Intermediate | 1 | 4 |
 | 🗺️ Advanced Graph Algorithms | Advanced | 2 | 4 |
 
-Each lesson includes:
-- Clear explanations with **intuition and trade-offs**
-- **Python code examples** with syntax highlighting
-- **Complexity tables** (time/space)
-- **"Why it works" explanations**
-- **Real-world applications**
-- **Interview tips**
-
-Each quiz question includes a **detailed explanation** shown after submission.
+Each lesson includes clear explanations with intuition and trade-offs, Python code examples
+with syntax highlighting, complexity tables (time/space), "Why it works" explanations,
+real-world applications, and interview tips. Each quiz question includes a detailed
+explanation shown after submission.
 
 ---
 
 ## Testing
 
-The project includes a comprehensive end-to-end test suite that validates all services without requiring Docker, PostgreSQL, or Redis (uses SQLite + fake Redis):
+The project includes a comprehensive end-to-end test suite that validates all services
+without requiring Docker, PostgreSQL, or Redis (uses SQLite + fake Redis):
 
 ```bash
-cd /Users/saibhargav/Documents/MyProjects/dsa
+cd /path/to/dsa
 
 # Create a Python 3.12+ venv
 python3 -m venv .venv
@@ -367,9 +432,9 @@ python run_tests.py
 **Test coverage (31 tests):**
 
 - **Auth Service (7 tests):** register, login, duplicate rejection, wrong password, token validation, internal verify
-- **Course Service (9 tests):** topic listing, topic detail, lesson listing, lesson content (Markdown + code blocks), search, 404 handling, content richness
-- **Quiz Service (8 tests):** quiz listing, by-topic filter, quiz detail, correct-answer hiding, submission, scoring, per-question details, explanations
-- **Progress Service (7 tests):** lesson completion, progress retrieval, quiz attempt recording, attempt history, stats, leaderboard, unauthenticated rejection
+- **Course Service (9 tests):** topic listing, topic detail, lesson listing, lesson content, search, 404 handling
+- **Quiz Service (8 tests):** quiz listing, by-topic filter, quiz detail, correct-answer hiding, submission, scoring
+- **Progress Service (7 tests):** lesson completion, progress retrieval, quiz attempt recording, stats, leaderboard
 
 ---
 
@@ -384,57 +449,44 @@ python run_tests.py
 - **Search** — find topics and lessons by keyword
 
 ### Architecture Highlights
+- **Kong API gateway** — single public entry point, declarative config, CORS plugin
 - **Service isolation** — each service owns its tables and can be deployed independently
+- **Private services on Render** — microservices are not exposed to the internet
 - **JWT auth** with token blacklisting for logout
 - **Redis caching** — course content and auth verification cached with TTL
-- **API Gateway pattern** — single entry point, clean routing, static UI hosting
+- **Environment-driven config** — Kong upstreams and service URLs resolve at runtime
 - **Auto-seeding** — database populates on first startup
 - **Health checks** — every service exposes `/health`
-- **Docker Compose** — one command to run the entire system
 
 ---
 
 ## Environment Variables
 
-| Variable | Default | Used by |
-|----------|---------|---------|
-| `DATABASE_URL` | `postgresql://dsauser:dsapass@postgres:5432/dsalearning` | All Python services |
-| `REDIS_URL` | `redis://redis:6379` | All Python services |
+| Variable | Default (local) | Used by |
+|----------|-----------------|---------|
+| `DATABASE_URL` | `postgresql://dsauser:dsapass@localhost:5432/dsalearning` | All Python services |
+| `REDIS_URL` | `redis://localhost:6379` | All Python services |
 | `JWT_SECRET` | `dev-secret-change-me-in-production` | Auth Service |
-| `AUTH_SERVICE_URL` | `http://auth-service:4001` | Progress Service, Gateway |
-| `COURSE_SERVICE_URL` | `http://course-service:4002` | Gateway |
-| `QUIZ_SERVICE_URL` | `http://quiz-service:4003` | Gateway |
-| `PROGRESS_SERVICE_URL` | `http://progress-service:4004` | Gateway |
-| `PORT` | varies per service | All services |
+| `AUTH_SERVICE_URL` | `http://auth-service:4001` | Progress Service |
+| `AUTH_SERVICE_HOSTPORT` | `auth-service:4001` | Kong (entrypoint.sh) |
+| `COURSE_SERVICE_HOSTPORT` | `course-service:4002` | Kong (entrypoint.sh) |
+| `QUIZ_SERVICE_HOSTPORT` | `quiz-service:4003` | Kong (entrypoint.sh) |
+| `PROGRESS_SERVICE_HOSTPORT` | `progress-service:4004` | Kong (entrypoint.sh) |
+| `PORT` | `4001`/`4002`/`4003`/`4004` | All services (Render sets this) |
+| `API_BASE_URL` | _(empty = same-origin)_ | Frontend (build.sh → config.js) |
 
-> ⚠️ **Production warning:** Change `JWT_SECRET` and database credentials before deploying.
+### On Render, these are wired automatically by `render.yaml`:
+- `DATABASE_URL` ← `fromDatabase: dsa-postgres.connectionString`
+- `REDIS_URL` ← `fromService: dsa-redis.connectionString`
+- `JWT_SECRET` ← `generateValue: true`
+- `AUTH_SERVICE_URL` ← `fromService: auth-service.hostport` (scheme added by config.py)
+- `*_HOSTPORT` (Kong) ← `fromService: <service>.hostport`
+- `API_BASE_URL` ← set to your Kong public URL (update after first deploy)
+
+> ⚠️ **Production warning:** Never use the default `JWT_SECRET` in production. On Render it
+> is auto-generated; locally, set a strong value in your environment.
 
 ---
-
-## Deploying to Render with Kong
-
-This repository includes a `render.yaml` that declares the Kong gateway plus the Python microservices. The microservices are configured as internal services and Kong is the single public gateway.
-
-Steps to deploy:
-
-1. Push this repository to GitHub (or a Git provider Render can access):
-
-```bash
-git add .
-git commit -m "Add Render deployment config and Kong gateway"
-git push origin main
-```
-
-2. On Render.com, create a new service and connect this repository. Render will detect `render.yaml` and create the listed services automatically. Ensure the `kong-gateway` service is public (default) and the other services are internal.
-
-3. If Kong doesn't pick up the declarative config automatically, set the environment variable `KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml` on the `kong-gateway` service (the `render.yaml` already includes this).
-
-4. Visit the Kong public URL (the `kong-gateway` service) — that is the API entrypoint for the SPA and API routes (e.g. `/auth`, `/courses`, `/quizzes`, `/progress`).
-
-Notes:
-- Render provides internal DNS between services in the same team — the service names used in `kong/kong.yml` match the service names in `render.yaml`.
-- Monitor service logs on Render to confirm successful startup and that Kong is routing requests to the internal services.
-
 
 ## License
 

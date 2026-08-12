@@ -2,7 +2,7 @@
    DSA Learning Platform — Frontend SPA
    ============================================================ */
 
-const API = ""; // same origin (gateway serves UI + proxies API)
+const API = window.__API_BASE__ || ""; // Render: Kong public URL; local: same-origin
 const TOKEN_KEY = "dsa_token";
 const USER_KEY = "dsa_user";
 

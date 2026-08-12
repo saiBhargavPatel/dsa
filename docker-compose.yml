@@ -29,6 +29,8 @@ services:
       retries: 10
 
   # ---- Microservices ----
+  # Each service honors $PORT (set below) so the same Dockerfile works
+  # locally and on Render.
   auth-service:
     build: ./auth-service
     environment:
@@ -87,24 +89,30 @@ services:
     ports:
       - "4004:4004"
 
-  # ---- Edge / UI ----
+  # ---- Edge / API Gateway ----
+  # Kong (DB-less) is the single public gateway. The entrypoint.sh
+  # renders kong.yml using the *_HOSTPORT vars below (which match the
+  # docker-compose service names). On Render these are provided by
+  # fromService: property: hostport.
   kong:
     build: ./kong
-
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: "off"
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-
+      # Upstream host:port (docker-compose service names resolve locally).
+      AUTH_SERVICE_HOSTPORT: auth-service:4001
+      COURSE_SERVICE_HOSTPORT: course-service:4002
+      QUIZ_SERVICE_HOSTPORT: quiz-service:4003
+      PROGRESS_SERVICE_HOSTPORT: progress-service:4004
     depends_on:
       - auth-service
       - course-service
       - quiz-service
       - progress-service
-
     ports:
       - "8080:8000"
 

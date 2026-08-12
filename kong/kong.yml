@@ -3,9 +3,11 @@ _transform: true
 
 services:
 
+  # =========================================================
+  # AUTH SERVICE  ->  /auth/*  and  /internal/*
+  # =========================================================
   - name: auth-service
-    url: http://auth-service:4001
-
+    url: http://__AUTH_SERVICE_HOSTPORT__
     routes:
       - name: auth-route
         paths:
@@ -13,37 +15,65 @@ services:
         strip_path: false
 
   - name: internal-auth-service
-    url: http://auth-service:4001
-
+    url: http://__AUTH_SERVICE_HOSTPORT__
     routes:
       - name: internal-auth-route
         paths:
           - /internal
         strip_path: false
 
+  # =========================================================
+  # COURSE SERVICE  ->  /courses/*
+  # =========================================================
   - name: course-service
-    url: http://course-service:4002
-
+    url: http://__COURSE_SERVICE_HOSTPORT__
     routes:
       - name: course-route
         paths:
           - /courses
         strip_path: false
 
+  # =========================================================
+  # QUIZ SERVICE  ->  /quizzes/*
+  # =========================================================
   - name: quiz-service
-    url: http://quiz-service:4003
-
+    url: http://__QUIZ_SERVICE_HOSTPORT__
     routes:
       - name: quiz-route
         paths:
           - /quizzes
         strip_path: false
 
+  # =========================================================
+  # PROGRESS SERVICE  ->  /progress/*
+  # =========================================================
   - name: progress-service
-    url: http://progress-service:4004
-
+    url: http://__PROGRESS_SERVICE_HOSTPORT__
     routes:
       - name: progress-route
         paths:
           - /progress
         strip_path: false
+
+# =========================================================
+# GLOBAL PLUGINS
+# =========================================================
+plugins:
+  # CORS — lets the browser SPA (hosted on a separate Render
+  # static site) call this Kong gateway cross-origin.
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+      credentials: false
+      preflight_continue: false
