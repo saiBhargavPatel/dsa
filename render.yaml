@@ -1,49 +1,181 @@
 services:
+
+  # =========================================================
+  # KONG - PUBLIC API GATEWAY
+  # =========================================================
+
   - type: web
     name: kong-gateway
-    env: docker
-    plan: free
-    dockerfilePath: kong/Dockerfile
-    autoDeploy: true
-    port: 8000
-    env:
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./kong/Dockerfile
+    autoDeployTrigger: commit
+
+    envVars:
       - key: KONG_DATABASE
         value: "off"
+
       - key: KONG_DECLARATIVE_CONFIG
-        value: "/kong/declarative/kong.yml"
+        value: /kong/declarative/kong.yml
 
-  - type: web
+      - key: KONG_PROXY_ACCESS_LOG
+        value: /dev/stdout
+
+      - key: KONG_PROXY_ERROR_LOG
+        value: /dev/stderr
+
+      - key: KONG_ADMIN_ACCESS_LOG
+        value: /dev/stdout
+
+      - key: KONG_ADMIN_ERROR_LOG
+        value: /dev/stderr
+
+
+  # =========================================================
+  # AUTH SERVICE - PRIVATE
+  # =========================================================
+
+  - type: pserv
     name: auth-service
-    env: docker
-    plan: free
-    dockerfilePath: auth-service/Dockerfile
-    autoDeploy: true
-    internal: true
-    port: 4001
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./auth-service/Dockerfile
+    autoDeployTrigger: commit
 
-  - type: web
+    envVars:
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dsa-postgres
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          name: dsa-redis
+          type: keyvalue
+          property: connectionString
+
+      - key: JWT_SECRET
+        generateValue: true
+
+
+  # =========================================================
+  # COURSE SERVICE - PRIVATE
+  # =========================================================
+
+  - type: pserv
     name: course-service
-    env: docker
-    plan: free
-    dockerfilePath: course-service/Dockerfile
-    autoDeploy: true
-    internal: true
-    port: 4002
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./course-service/Dockerfile
+    autoDeployTrigger: commit
 
-  - type: web
+    envVars:
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dsa-postgres
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          name: dsa-redis
+          type: keyvalue
+          property: connectionString
+
+
+  # =========================================================
+  # QUIZ SERVICE - PRIVATE
+  # =========================================================
+
+  - type: pserv
     name: quiz-service
-    env: docker
-    plan: free
-    dockerfilePath: quiz-service/Dockerfile
-    autoDeploy: true
-    internal: true
-    port: 4003
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./quiz-service/Dockerfile
+    autoDeployTrigger: commit
+
+    envVars:
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dsa-postgres
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          name: dsa-redis
+          type: keyvalue
+          property: connectionString
+
+
+  # =========================================================
+  # PROGRESS SERVICE - PRIVATE
+  # =========================================================
+
+  - type: pserv
+    name: progress-service
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./progress-service/Dockerfile
+    autoDeployTrigger: commit
+
+    envVars:
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dsa-postgres
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          name: dsa-redis
+          type: keyvalue
+          property: connectionString
+
+      - key: AUTH_SERVICE_URL
+        fromService:
+          name: auth-service
+          type: pserv
+          property: hostport
+
+
+  # =========================================================
+  # FRONTEND - STATIC SITE
+  # =========================================================
 
   - type: web
-    name: progress-service
-    env: docker
-    plan: free
-    dockerfilePath: progress-service/Dockerfile
-    autoDeploy: true
-    internal: true
-    port: 4004
+    name: dsa-frontend
+    runtime: static
+    region: singapore
+    staticPublishPath: ./frontend
+    autoDeployTrigger: commit
+
+
+  # =========================================================
+  # REDIS / KEY VALUE
+  # =========================================================
+
+  - type: keyvalue
+    name: dsa-redis
+    plan: starter
+    region: singapore
+    maxmemoryPolicy: allkeys-lru
+
+
+databases:
+
+  # =========================================================
+  # POSTGRESQL
+  # =========================================================
+
+  - name: dsa-postgres
+    plan: basic-256mb
+    region: singapore
+    databaseName: dsalearning
+    user: dsauser
