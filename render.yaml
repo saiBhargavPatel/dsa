@@ -6,7 +6,7 @@ services:
   - type: web
     name: kong-gateway
     runtime: docker
-    plan: starter
+    plan: Free
     region: singapore
     dockerfilePath: ./kong/Dockerfile
     dockerContext: ./kong
@@ -71,10 +71,10 @@ services:
   # =========================================================
   # AUTH SERVICE - PRIVATE
   # =========================================================
-  - type: pserv
+  - type: web
     name: auth-service
     runtime: docker
-    plan: starter
+    plan: Free
     region: singapore
     dockerfilePath: ./auth-service/Dockerfile
     dockerContext: ./auth-service
@@ -96,10 +96,10 @@ services:
   # =========================================================
   # COURSE SERVICE - PRIVATE
   # =========================================================
-  - type: pserv
+  - type: web
     name: course-service
     runtime: docker
-    plan: starter
+    plan: Free
     region: singapore
     dockerfilePath: ./course-service/Dockerfile
     dockerContext: ./course-service
@@ -119,10 +119,10 @@ services:
   # =========================================================
   # QUIZ SERVICE - PRIVATE
   # =========================================================
-  - type: pserv
+  - type: web
     name: quiz-service
     runtime: docker
-    plan: starter
+    plan: Free
     region: singapore
     dockerfilePath: ./quiz-service/Dockerfile
     dockerContext: ./quiz-service
@@ -142,11 +142,11 @@ services:
   # =========================================================
   # PROGRESS SERVICE - PRIVATE
   # =========================================================
-  - type: pserv
+  - type: web
     name: progress-service
     runtime: docker
-    plan: starter
-    region: singapore
+    plan: Free
+    #region: singapore
     dockerfilePath: ./progress-service/Dockerfile
     dockerContext: ./progress-service
     autoDeployTrigger: commit
@@ -175,7 +175,7 @@ services:
   - type: web
     name: dsa-frontend
     runtime: static
-    plan: free
+    plan: Free
     staticPublishPath: ./frontend
     buildCommand: bash build.sh
     autoDeployTrigger: commit
@@ -195,7 +195,7 @@ services:
   # =========================================================
   - type: keyvalue
     name: dsa-redis
-    plan: starter
+    plan: Free
     region: singapore
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
@@ -206,7 +206,7 @@ databases:
   # POSTGRESQL
   # =========================================================
   - name: dsa-postgres
-    plan: basic-256mb
+    plan: Free
     region: singapore
     databaseName: dsalearning
     user: dsauser
