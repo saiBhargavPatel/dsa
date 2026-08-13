@@ -35,4 +35,4 @@ else
   echo "[kong-entrypoint] all upstream hostports resolved successfully"
 fi
 
-exec /docker-entrypoint.sh kong docker-start
+exec docker-entrypoint.sh kong docker-start

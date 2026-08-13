@@ -58,6 +58,9 @@ services:
           name: progress-service
           type: web
           property: hostport
+      
+      - key: API_BASE_URL
+        value: "API_BASE_URL=https://kong-gateway-clk8.onrender.com"
 
 
   # =========================================================
@@ -190,12 +193,13 @@ services:
     #region: singapore
     staticPublishPath: ./frontend
     autoDeployTrigger: commit
+    buildCommand: bash frontend/build.sh
 
     envVars:
       # Temporary value.
       # Update this after Kong gets its actual Render URL.
       - key: API_BASE_URL
-        value: https://kong-gateway.onrender.com
+        value: https://kong-gateway-clk8.onrender.com
 
 
   # =========================================================
