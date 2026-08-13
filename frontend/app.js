@@ -2,7 +2,7 @@
    DSA Learning Platform — Frontend SPA
    ============================================================ */
 
-const API = window.__API_BASE__ || "http://localhost:8080";
+const API = window.__API_BASE__ || "http://localhost:8080"; 
 const TOKEN_KEY = "dsa_token";
 const USER_KEY = "dsa_user";
 
