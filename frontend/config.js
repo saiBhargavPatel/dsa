@@ -14,4 +14,4 @@
    on the static site. build.sh rewrites config.js accordingly.
    ============================================================ */
 
-window.__API_BASE__ = "http://localhost:8080";
+window.__API_BASE__ = "https://kong-gateway-00v6.onrender.com";
