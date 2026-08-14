@@ -60,7 +60,13 @@ services:
           property: hostport
       
       - key: API_BASE_URL
-        value: "API_BASE_URL=https://kong-gateway-clk8.onrender.com"
+        value: "API_BASE_URL=https://kong-gateway-00v6.onrender.com"
+
+      - key: KONG_NGINX_WORKER_PROCESSES
+        value: "1"
+
+      - key: KONG_NGINX_WORKER_CONNECTIONS
+        value: "256"
 
 
   # =========================================================
