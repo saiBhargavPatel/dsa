@@ -4,10 +4,10 @@ _transform: true
 services:
 
   # =========================================================
-  # AUTH SERVICE  ->  /auth/*  and  /internal/*
+  # AUTH SERVICE -> /auth/* and /internal/*
   # =========================================================
   - name: auth-service
-    url: http://__AUTH_SERVICE_HOSTPORT__
+    url: __AUTH_SERVICE_URL__
     routes:
       - name: auth-route
         paths:
@@ -15,7 +15,7 @@ services:
         strip_path: false
 
   - name: internal-auth-service
-    url: http://__AUTH_SERVICE_HOSTPORT__
+    url: __AUTH_SERVICE_URL__
     routes:
       - name: internal-auth-route
         paths:
@@ -23,10 +23,10 @@ services:
         strip_path: false
 
   # =========================================================
-  # COURSE SERVICE  ->  /courses/*
+  # COURSE SERVICE -> /courses/*
   # =========================================================
   - name: course-service
-    url: http://__COURSE_SERVICE_HOSTPORT__
+    url: __COURSE_SERVICE_URL__
     routes:
       - name: course-route
         paths:
@@ -34,10 +34,10 @@ services:
         strip_path: false
 
   # =========================================================
-  # QUIZ SERVICE  ->  /quizzes/*
+  # QUIZ SERVICE -> /quizzes/*
   # =========================================================
   - name: quiz-service
-    url: http://__QUIZ_SERVICE_HOSTPORT__
+    url: __QUIZ_SERVICE_URL__
     routes:
       - name: quiz-route
         paths:
@@ -45,26 +45,30 @@ services:
         strip_path: false
 
   # =========================================================
-  # PROGRESS SERVICE  ->  /progress/*
+  # PROGRESS SERVICE -> /progress/*
   # =========================================================
   - name: progress-service
-    url: http://__PROGRESS_SERVICE_HOSTPORT__
+    url: __PROGRESS_SERVICE_URL__
     routes:
       - name: progress-route
         paths:
           - /progress
         strip_path: false
 
+
 # =========================================================
 # GLOBAL PLUGINS
 # =========================================================
+
 plugins:
-  # CORS — lets the browser SPA (hosted on a separate Render
-  # static site) call this Kong gateway cross-origin.
+
+  # CORS — allows the Render static frontend
+  # to communicate with the Kong gateway.
   - name: cors
     config:
       origins:
         - "*"
+
       methods:
         - GET
         - POST
@@ -72,8 +76,10 @@ plugins:
         - PATCH
         - DELETE
         - OPTIONS
+
       headers:
         - Authorization
         - Content-Type
+
       credentials: false
       preflight_continue: false
