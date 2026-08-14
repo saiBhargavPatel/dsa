@@ -35,29 +35,17 @@ services:
         value: /dev/stderr
 
       # Render private-network host:port of each web service
-      - key: AUTH_SERVICE_HOSTPORT
-        fromService:
-          name: auth-service
-          type: web
-          property: hostport
+      - key: AUTH_SERVICE_URL
+        value: "https://auth-service-tmlf.onrender.com"
 
-      - key: COURSE_SERVICE_HOSTPORT
-        fromService:
-          name: course-service
-          type: web
-          property: hostport
+      - key: COURSE_SERVICE_URL
+        value: "https://course-service-4xtw.onrender.com"
 
-      - key: QUIZ_SERVICE_HOSTPORT
-        fromService:
-          name: quiz-service
-          type: web
-          property: hostport
+      - key: QUIZ_SERVICE_URL
+        value: "https://quiz-service-fjr9.onrender.com"
 
-      - key: PROGRESS_SERVICE_HOSTPORT
-        fromService:
-          name: progress-service
-          type: web
-          property: hostport
+      - key: PROGRESS_SERVICE_URL
+        value: "https://progress-service-edqd.onrender.com"
       
       - key: API_BASE_URL
         value: "https://kong-gateway-00v6.onrender.com"
