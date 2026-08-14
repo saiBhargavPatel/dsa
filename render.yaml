@@ -6,7 +6,7 @@ services:
   - type: web
     name: kong-gateway
     runtime: docker
-    plan: free
+    plan: Free
     region: singapore
     dockerfilePath: ./kong/Dockerfile
     dockerContext: ./kong
@@ -23,7 +23,7 @@ services:
         value: "8000"
 
       - key: KONG_PROXY_LISTEN
-        value: "0.0.0.0:8000"
+        value: 0.0.0.0:8000
 
       - key: KONG_ADMIN_LISTEN
         value: "off"
@@ -34,10 +34,7 @@ services:
       - key: KONG_PROXY_ERROR_LOG
         value: /dev/stderr
 
-      # =====================================================
-      # PUBLIC URLs OF BACKEND SERVICES
-      # =====================================================
-
+      # Render private-network host:port of each web service
       - key: AUTH_SERVICE_URL
         value: "https://auth-service-tmlf.onrender.com"
 
@@ -49,10 +46,6 @@ services:
 
       - key: PROGRESS_SERVICE_URL
         value: "https://progress-service-edqd.onrender.com"
-
-      # =====================================================
-      # KONG RESOURCE LIMITS
-      # =====================================================
 
       - key: KONG_NGINX_WORKER_PROCESSES
         value: "1"
@@ -67,14 +60,13 @@ services:
   - type: web
     name: auth-service
     runtime: docker
-    plan: free
+    plan: Free
     region: singapore
     dockerfilePath: ./auth-service/Dockerfile
     dockerContext: ./auth-service
     autoDeployTrigger: commit
 
     envVars:
-
       - key: PORT
         value: "4001"
 
@@ -99,14 +91,13 @@ services:
   - type: web
     name: course-service
     runtime: docker
-    plan: free
+    plan: Free
     region: singapore
     dockerfilePath: ./course-service/Dockerfile
     dockerContext: ./course-service
     autoDeployTrigger: commit
 
     envVars:
-
       - key: PORT
         value: "4002"
 
@@ -128,14 +119,13 @@ services:
   - type: web
     name: quiz-service
     runtime: docker
-    plan: free
+    plan: Free
     region: singapore
     dockerfilePath: ./quiz-service/Dockerfile
     dockerContext: ./quiz-service
     autoDeployTrigger: commit
 
     envVars:
-
       - key: PORT
         value: "4003"
 
@@ -157,14 +147,13 @@ services:
   - type: web
     name: progress-service
     runtime: docker
-    plan: free
+    plan: Free
     region: singapore
     dockerfilePath: ./progress-service/Dockerfile
     dockerContext: ./progress-service
     autoDeployTrigger: commit
 
     envVars:
-
       - key: PORT
         value: "4004"
 
@@ -179,9 +168,6 @@ services:
           type: keyvalue
           property: connectionString
 
-      # Progress -> Auth
-      # Use public URL because Auth is also a Free web service.
-
       - key: AUTH_SERVICE_URL
         value: "https://auth-service-tmlf.onrender.com"
 
@@ -192,19 +178,16 @@ services:
   - type: web
     name: dsa-frontend
     runtime: static
-
+    #region: singapore
     staticPublishPath: ./frontend
-
+    autoDeployTrigger: commit
     buildCommand: bash frontend/build.sh
 
-    autoDeployTrigger: commit
-
     envVars:
-
-      # Frontend -> Kong
-
+      # Temporary value.
+      # Update this after Kong gets its actual Render URL.
       - key: API_BASE_URL
-        value: "https://kong-gateway-00v6.onrender.com"
+        value: https://kong-gateway-00v6.onrender.com
 
 
   # =========================================================
@@ -212,7 +195,7 @@ services:
   # =========================================================
   - type: keyvalue
     name: dsa-redis
-    plan: free
+    plan: Free
     region: singapore
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
@@ -224,8 +207,10 @@ databases:
   # POSTGRESQL
   # =========================================================
   - name: dsa-postgres
-    plan: free
+    plan: Free
     region: singapore
     databaseName: dsalearning
     user: dsauser
     ipAllowList: []
+
+    
